@@ -9,7 +9,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setVisits, setLoading } from '../store/slices/visitSlice';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
+import { residentialGraph } from '../structures';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -27,6 +27,10 @@ const HomeScreen = () => {
   const today = new Date().toISOString().split('T')[0];
   const todayVisits = visits.filter(v => v.created_at.startsWith(today)).length;
   const totalVisits = visits.length;
+
+  // Obtener ruta desde el Grafo para la última visita registrada si existe
+  const lastVisit = visits[0];
+  const routeToLastVisit = lastVisit ? residentialGraph.findPath("Entrada", lastVisit.house) : [];
 
   useEffect(() => {
     fetchVisits();
@@ -78,6 +82,15 @@ const HomeScreen = () => {
         </View>
       </View>
 
+      {lastVisit && (
+        <View style={styles.routeCard}>
+          <Text style={styles.routeTitle}>📍 Próxima Visita: {lastVisit.name}</Text>
+          <Text style={styles.routeText}>
+            Ruta: {routeToLastVisit.length > 0 ? routeToLastVisit.join(' → ') : 'Sin ruta directa'}
+          </Text>
+        </View>
+      )}
+
       <Text style={styles.sectionTitle}>{t('quickActions')}</Text>
 <View style={styles.actionsGrid}>
   {(profile?.role === 'residente' || profile?.role === 'admin') && (
@@ -112,6 +125,9 @@ const styles = StyleSheet.create({
   },
   statNumber: { fontSize: 36, fontWeight: '800', color: '#2563EB' },
   statLabel: { fontSize: 13, color: '#64748B', marginTop: 4 },
+  routeCard: { backgroundColor: '#2563EB', borderRadius: 12, padding: 16, marginBottom: 24, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 4 },
+  routeTitle: { color: '#FFF', fontWeight: '700', fontSize: 15, marginBottom: 4 },
+  routeText: { color: '#DBEAFE', fontSize: 13, fontWeight: '500' },
   sectionTitle: { fontSize: 17, fontWeight: '600', color: '#334155', marginBottom: 12 },
   actionsGrid: { flexDirection: 'row', gap: 12 },
   action: {

@@ -7,6 +7,7 @@ import CustomButton from '../components/CustomButton';
 import { useAppDispatch } from '../store/hooks';
 import { updateVisitStatus } from '../store/slices/visitSlice';
 import { useNavigation } from '@react-navigation/native';
+import { actionStack } from '../structures';
 
 interface VisitData {
   id: string;
@@ -97,38 +98,57 @@ const ScanQRScreen = () => {
   };
 
   const handleApprove = async () => {
-  if (!visitData) return;
+    if (!visitData) return;
 
-  // Verificar que se tomó foto del DPI
-  if (!photoUri) {
-    Alert.alert('Foto requerida', 'Debes tomar foto del ID antes de aprobar el acceso.');
-    return;
-  }
+    if (!photoUri) {
+      Alert.alert('Foto requerida', 'Debes tomar foto del ID antes de aprobar el acceso.');
+      return;
+    }
 
-  setUploading(true);
+    setUploading(true);
 
-  const photoUrl = await uploadPhoto(photoUri, visitData.id);
-  if (photoUrl) {
-    await supabase.from('visits').update({ photo_url: photoUrl }).eq('id', visitData.id);
-  }
+    const prevStatus = (visitData as any).status;
+    const photoUrl = await uploadPhoto(photoUri, visitData.id);
+    if (photoUrl) {
+      await supabase.from('visits').update({ photo_url: photoUrl }).eq('id', visitData.id);
+    }
 
-  await supabase.from('visits').update({ status: 'approved' }).eq('id', visitData.id);
-  dispatch(updateVisitStatus({ id: visitData.id, status: 'approved' }));
-  setUploading(false);
+    await supabase.from('visits').update({ status: 'approved' }).eq('id', visitData.id);
+    dispatch(updateVisitStatus({ id: visitData.id, status: 'approved' }));
 
-  Alert.alert('✅ Acceso Aprobado', `${visitData.name} puede ingresar a casa ${visitData.house}.`, [
-    { text: 'OK', onPress: () => navigation.goBack() }
-  ]);
-  setShowModal(false);
-  setScanned(false);
-  setVisitData(null);
-  setPhotoUri(null);
-};
+    // Guardar acción en el Stack
+    actionStack.push({
+      visitId: visitData.id,
+      previousStatus: prevStatus,
+      newStatus: 'approved',
+      timestamp: Date.now()
+    });
+
+    setUploading(false);
+
+    Alert.alert('✅ Acceso Aprobado', `${visitData.name} puede ingresar a casa ${visitData.house}.`, [
+      { text: 'OK', onPress: () => navigation.goBack() }
+    ]);
+    setShowModal(false);
+    setScanned(false);
+    setVisitData(null);
+    setPhotoUri(null);
+  };
 
   const handleDeny = async () => {
     if (!visitData) return;
+    const prevStatus = (visitData as any).status;
+
     await supabase.from('visits').update({ status: 'denied' }).eq('id', visitData.id);
     dispatch(updateVisitStatus({ id: visitData.id, status: 'denied' }));
+
+    // Guardar acción en el Stack
+    actionStack.push({
+      visitId: visitData.id,
+      previousStatus: prevStatus,
+      newStatus: 'denied',
+      timestamp: Date.now()
+    });
 
     Alert.alert('❌ Acceso Denegado', `Visita de ${visitData.name} denegada.`, [
       { text: 'OK', onPress: () => navigation.goBack() }
@@ -137,6 +157,26 @@ const ScanQRScreen = () => {
     setScanned(false);
     setVisitData(null);
     setPhotoUri(null);
+  };
+
+  const handleUndo = async () => {
+    const lastAction = actionStack.pop();
+    if (!lastAction) {
+      Alert.alert('Nada que deshacer', 'No hay acciones recientes para revertir.');
+      return;
+    }
+
+    try {
+      await supabase
+        .from('visits')
+        .update({ status: lastAction.previousStatus })
+        .eq('id', lastAction.visitId);
+
+      dispatch(updateVisitStatus({ id: lastAction.visitId, status: lastAction.previousStatus }));
+      Alert.alert('↩ Acción Deshecha', `La visita ha vuelto a estado: ${lastAction.previousStatus}`);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo deshacer la acción.');
+    }
   };
 
   if (!permission) return <View />;
@@ -152,6 +192,9 @@ const ScanQRScreen = () => {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.undoBtn} onPress={handleUndo}>
+        <Text style={styles.undoBtnText}>↩ Deshacer última acción</Text>
+      </TouchableOpacity>
       <CameraView
         style={styles.camera}
         facing="back"
@@ -206,6 +249,8 @@ const styles = StyleSheet.create({
   hint: { color: '#FFFFFF', marginTop: 20, fontSize: 14, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.8)', textShadowRadius: 4 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#F1F5F9' },
   permText: { textAlign: 'center', color: '#475569', marginBottom: 16, fontSize: 15 },
+  undoBtn: { position: 'absolute', top: 60, left: 24, right: 24, zIndex: 10, backgroundColor: 'rgba(30, 41, 59, 0.8)', padding: 12, borderRadius: 12, alignItems: 'center' },
+  undoBtnText: { color: '#FFF', fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 28 },
   modalTitle: { fontSize: 18, fontWeight: '700', color: '#1E293B', marginBottom: 12 },

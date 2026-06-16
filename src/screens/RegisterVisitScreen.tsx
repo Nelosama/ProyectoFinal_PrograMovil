@@ -11,6 +11,7 @@ import { useAppDispatch } from '../store/hooks';
 import { addVisit } from '../store/slices/visitSlice';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
+import { visitList, visitQueue } from '../structures';
 
 const RegisterVisitScreen = () => {
   const navigation = useNavigation();
@@ -46,6 +47,11 @@ const RegisterVisitScreen = () => {
 
       dispatch(addVisit(data));
       console.log('[Redux] RegisterVisitScreen - visita agregada al estado global:', data.id);
+
+      // Integración con Estructuras Manuales
+      visitList.insert(data);
+      visitQueue.enqueue(data);
+      console.log('[Estructuras] Visita insertada en LinkedList y encolada en Queue');
 
       const qrData = JSON.stringify({ id: data.id, name: data.name, house: data.house });
       setQrValue(qrData);
