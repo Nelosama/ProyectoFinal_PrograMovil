@@ -9,6 +9,8 @@ import VisitorsScreen from '../screens/VisitorsScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ScanQRScreen from '../screens/ScanQRScreen';
+import QueueScreen from '../screens/QueueScreen';
+import GraphScreen from '../screens/GraphScreen';
 
 export type TabParamList = {
   Home: undefined;
@@ -16,6 +18,8 @@ export type TabParamList = {
   History: undefined;
   Profile: undefined;
   ScanQR: undefined;
+  Queue: undefined;
+  Graph: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -34,6 +38,8 @@ const TabsNavigator = () => {
             History: '📋',
             Profile: '⚙️',
             ScanQR: '📷',
+            Queue: '⏳',
+            Graph: '🗺️',
           };
           return <Text style={{ fontSize: size - 4 }}>{icons[route.name]}</Text>;
         },
@@ -57,9 +63,13 @@ const TabsNavigator = () => {
 
       {/* Guardias y Admin ven el escáner QR en tabs */}
       {(profile?.role === 'guardia' || profile?.role === 'admin') && (
-        <Tab.Screen name="ScanQR" component={ScanQRScreen} options={{ title: t('scanQR') }} />
+        <>
+          <Tab.Screen name="ScanQR" component={ScanQRScreen} options={{ title: t('scanQR') }} />
+          <Tab.Screen name="Queue" component={QueueScreen} options={{ title: 'Cola' }} />
+        </>
       )}
 
+      <Tab.Screen name="Graph" component={GraphScreen} options={{ title: 'Mapa' }} />
       <Tab.Screen name="History" component={HistoryScreen} options={{ title: t('visitHistory') }} />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: t('profile') }} />
     </Tab.Navigator>

@@ -3,8 +3,9 @@ import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/StackNavigator';
-import { supabase, MOCK_MODE } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import CustomButton from '../components/CustomButton';
+import { visitList } from '../structures';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VisitDetail'>;
 
@@ -28,11 +29,6 @@ const VisitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   }, []);
 
   const fetchVisit = async () => {
-    if (MOCK_MODE) {
-      setVisit({ id: visitId, name: 'Ana García', id_number: '2134 56789 0101', house: 'A-1', reason: 'Visita familiar', status: 'approved', created_at: new Date().toISOString() });
-      setLoading(false);
-      return;
-    }
     const { data, error } = await supabase.from('visits').select('*').eq('id', visitId).single();
     if (error) Alert.alert('Error', error.message);
     else setVisit(data);
@@ -45,6 +41,8 @@ const VisitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       {
         text: 'Eliminar', style: 'destructive', onPress: async () => {
           await supabase.from('visits').delete().eq('id', visitId);
+          visitList.delete(visitId);
+          console.log('[Estructuras] Visita eliminada de LinkedList:', visitId);
           navigation.goBack();
         }
       }

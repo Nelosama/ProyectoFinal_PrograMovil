@@ -3,6 +3,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import { profileCache } from '../structures';
 
 interface Profile {
   id: string;
@@ -74,15 +75,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const fetchProfile = async (userId: string) => {
+    // Intento de obtener del cache (HashTable)
+    const cached = profileCache.get(userId);
+    if (cached) {
+      console.log('[Cache HIT] Perfil encontrado en HashTable para:', userId);
+      setProfile(cached as any);
+      setLoading(false);
+      return;
+    }
+
+    console.log('[Cache MISS] Buscando perfil en Supabase para:', userId);
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
-    if (!error) {
+    if (!error && data) {
       setProfile(data);
-      console.log('[Auth] Perfil cargado:', data.email, '- Rol:', data.role);
+      profileCache.set(userId, data);
+      console.log('[Auth] Perfil cargado y guardado en cache:', data.email, '- Rol:', data.role);
     }
 
     await registerForPushNotifications(userId);

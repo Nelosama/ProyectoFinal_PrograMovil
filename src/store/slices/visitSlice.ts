@@ -36,7 +36,7 @@ const visitsSlice = createSlice({
       console.log('[Redux] addVisit - agregando visita:', action.payload.name);
       state.list.unshift(action.payload);
     },
-    updateVisitStatus(state, action: PayloadAction<{ id: string; status: 'approved' | 'denied' }>) {
+    updateVisitStatus(state, action: PayloadAction<{ id: string; status: 'pending' | 'approved' | 'denied' }>) {
       console.log('[Redux] updateVisitStatus - actualizando visita:', action.payload.id, '->', action.payload.status);
       const visit = state.list.find(v => v.id === action.payload.id);
       if (visit) {
