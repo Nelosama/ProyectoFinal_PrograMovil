@@ -9,8 +9,8 @@ import { Visit } from '../store/slices/visitSlice';
 // Tipos para los registros de acciones (Stack)
 export interface ActionRecord {
   visitId: string;
-  previousStatus: 'pending' | 'approved' | 'denied';
-  newStatus: 'pending' | 'approved' | 'denied';
+  previousStatus: 'pending' | 'approved' | 'denied' | 'checked_out';
+  newStatus: 'pending' | 'approved' | 'denied' | 'checked_out';
   timestamp: number;
 }
 

@@ -6,6 +6,9 @@ import { RootStackParamList } from '../navigation/StackNavigator';
 import { supabase } from '../lib/supabase';
 import CustomButton from '../components/CustomButton';
 import { visitList } from '../structures';
+import { useAuth } from '../contexts/AuthContext';
+import { useAppDispatch } from '../store/hooks';
+import { updateVisitStatus } from '../store/slices/visitSlice';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VisitDetail'>;
 
@@ -15,14 +18,17 @@ interface Visit {
   id_number: string;
   house: string;
   reason: string;
-  status: string;
+  status: 'pending' | 'approved' | 'denied' | 'checked_out';
   created_at: string;
 }
 
 const VisitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { visitId } = route.params;
+  const { profile } = useAuth();
+  const dispatch = useAppDispatch();
   const [visit, setVisit] = useState<Visit | null>(null);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     fetchVisit();
@@ -33,6 +39,27 @@ const VisitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     if (error) Alert.alert('Error', error.message);
     else setVisit(data);
     setLoading(false);
+  };
+
+  const handleCheckOut = async () => {
+    if (!visit) return;
+    try {
+      setActionLoading(true);
+      const { error } = await supabase
+        .from('visits')
+        .update({ status: 'checked_out' })
+        .eq('id', visitId);
+
+      if (error) throw error;
+
+      dispatch(updateVisitStatus({ id: visitId, status: 'checked_out' }));
+      setVisit({ ...visit, status: 'checked_out' });
+      Alert.alert('Salida Registrada', `Se ha registrado la salida de ${visit.name}.`);
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleDelete = () => {
@@ -53,7 +80,10 @@ const VisitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   if (!visit) return null;
 
   const qrData = JSON.stringify({ id: visit.id, name: visit.name, house: visit.house });
-  const statusColor = visit.status === 'approved' ? '#16A34A' : visit.status === 'denied' ? '#DC2626' : '#D97706';
+  const statusColor =
+    visit.status === 'approved' ? '#16A34A' :
+    visit.status === 'denied' ? '#DC2626' :
+    visit.status === 'checked_out' ? '#2563EB' : '#D97706';
 
   return (
     <View style={styles.container}>
@@ -69,10 +99,22 @@ const VisitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.row}>
           <Text style={styles.label}>Estado</Text>
           <Text style={[styles.value, { color: statusColor, fontWeight: '700' }]}>
-            {visit.status === 'approved' ? '✅ Aprobado' : visit.status === 'denied' ? '❌ Denegado' : '⏳ Pendiente'}
+            {visit.status === 'approved' ? '✅ Aprobado' :
+             visit.status === 'denied' ? '❌ Denegado' :
+             visit.status === 'checked_out' ? '🔵 Salida' : '⏳ Pendiente'}
           </Text>
         </View>
       </View>
+
+      {(profile?.role === 'guardia' || profile?.role === 'admin') && visit.status === 'approved' && (
+        <CustomButton
+          title="🚪 Registrar Salida"
+          onPress={handleCheckOut}
+          loading={actionLoading}
+          variant="primary"
+          style={{ marginBottom: 12 }}
+        />
+      )}
 
       <CustomButton title="🗑 Eliminar Visita" onPress={handleDelete} variant="danger" />
     </View>

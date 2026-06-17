@@ -7,7 +7,7 @@ export interface Visit {
   id_number: string;
   house: string;
   reason?: string;
-  status: 'pending' | 'approved' | 'denied';
+  status: 'pending' | 'approved' | 'denied' | 'checked_out';
   created_at: string;
 }
 
@@ -36,7 +36,7 @@ const visitsSlice = createSlice({
       console.log('[Redux] addVisit - agregando visita:', action.payload.name);
       state.list.unshift(action.payload);
     },
-    updateVisitStatus(state, action: PayloadAction<{ id: string; status: 'pending' | 'approved' | 'denied' }>) {
+    updateVisitStatus(state, action: PayloadAction<{ id: string; status: 'pending' | 'approved' | 'denied' | 'checked_out' }>) {
       console.log('[Redux] updateVisitStatus - actualizando visita:', action.payload.id, '->', action.payload.status);
       const visit = state.list.find(v => v.id === action.payload.id);
       if (visit) {
