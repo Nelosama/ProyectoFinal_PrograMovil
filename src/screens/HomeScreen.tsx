@@ -27,6 +27,7 @@ const HomeScreen = () => {
   const today = new Date().toISOString().split('T')[0];
   const todayVisits = visits.filter(v => v.created_at.startsWith(today)).length;
   const totalVisits = visits.length;
+  const activeVisits = visits.filter(v => v.status === 'approved').length;
 
   // Obtener ruta desde el Grafo para la última visita registrada si existe
   const lastVisit = visits[0];
@@ -76,10 +77,17 @@ const HomeScreen = () => {
           <Text style={styles.statNumber}>{todayVisits}</Text>
           <Text style={styles.statLabel}>{t('today')}</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{totalVisits}</Text>
-          <Text style={styles.statLabel}>{t('total')}</Text>
-        </View>
+        {(profile?.role === 'guardia' || profile?.role === 'admin') ? (
+          <View style={[styles.statCard, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE', borderWidth: 1 }]}>
+            <Text style={[styles.statNumber, { color: '#1E40AF' }]}>{activeVisits}</Text>
+            <Text style={[styles.statLabel, { color: '#1E40AF', fontWeight: '600' }]}>En Complejo</Text>
+          </View>
+        ) : (
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{totalVisits}</Text>
+            <Text style={styles.statLabel}>{t('total')}</Text>
+          </View>
+        )}
       </View>
 
       {lastVisit && (
